@@ -14,7 +14,7 @@ def pascal_triangle(n):
     """
     triangle = [[1]]
     if n <= 0:
-        return [[]]
+        return []
     else:
         for _ in range(1, n):
             temp = [1]
