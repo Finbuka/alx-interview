@@ -1,38 +1,55 @@
 #!/usr/bin/python3
-'''a script that reads stdin line by line and computes metrics'''
+"""
+    A module that read from stdin and calculate matrix on it
+signal_handler: function that handle CTRL + C
+    it prints the calculated matrix and exit
+Print_stats: function that calculate the matrix
+    prints out the calculated matrix
+"""
 
 
 import sys
+import signal
 
-cache = {'200': 0, '301': 0, '400': 0, '401': 0,
-         '403': 0, '404': 0, '405': 0, '500': 0}
-total_size = 0
-counter = 0
+total_file_size = 0
+stat_cod_cnt = {}
+line_num = 0
 
-try:
-    for line in sys.stdin:
-        line_list = line.split(" ")
-        if len(line_list) > 4:
-            code = line_list[-2]
-            size = int(line_list[-1])
-            if code in cache.keys():
-                cache[code] += 1
-            total_size += size
-            counter += 1
+def signal_handler(sig, frame):
+    """
+    Define a function to handle keyboard interrupts
+        sig: CTRL + C
+        frame: 
+    exits with status code 0
+    """
+    print_stats()
+    sys.exit(0)
 
-        if counter == 10:
-            counter = 0
-            print('File size: {}'.format(total_size))
-            for key, value in sorted(cache.items()):
-                if value != 0:
-                    print('{}: {}'.format(key, value))
 
-except Exception as err:
-    pass
+def print_stats():
+    """
+    Define a function to print the current stats
+        it takes no argument
+        prints the calculated matrix
+    """
+    print(f"File size: {total_file_size}")
+    for status_code in sorted(stat_cod_cnt.keys()):
+        print(f"{status_code}: {stat_cod_cnt[status_code]}")
 
-finally:
-    print('File size: {}'.format(total_size))
-    for key, value in sorted(cache.items()):
-        if value != 0:
-            print('{}: {}'.format(key, value))
-            
+for line in sys.stdin:
+    line_num += 1
+
+    try:
+        ip_address, _, _, _, _, _, _, status_code, file_size = line.split()
+        status_code = int(status_code)
+        file_size = int(file_size)
+    except ValueError:
+        continue
+
+    total_file_size += file_size
+    stat_cod_cnt[status_code] = stat_cod_cnt.get(status_code, 0) + 1
+
+    if line_num % 10 == 0:
+        print_stats()
+
+signal.signal(signal.SIGINT, signal_handler)
