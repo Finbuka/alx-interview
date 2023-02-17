@@ -1,52 +1,38 @@
 #!/usr/bin/python3
-"""
-reading stdin
-"""
+'''a script that reads stdin line by line and computes metrics'''
+
 
 import sys
-import signal
 
+cache = {'200': 0, '301': 0, '400': 0, '401': 0,
+         '403': 0, '404': 0, '405': 0, '500': 0}
+total_size = 0
+counter = 0
 
-def signal_handler(sig, frame):
-    """Define a function to handle keyboard interrupts"""
-    print_stats()
-    sys.exit(0)
+try:
+    for line in sys.stdin:
+        line_list = line.split(" ")
+        if len(line_list) > 4:
+            code = line_list[-2]
+            size = int(line_list[-1])
+            if code in cache.keys():
+                cache[code] += 1
+            total_size += size
+            counter += 1
 
-# Register the interrupt signal handler
-signal.signal(signal.SIGINT, signal_handler)
+        if counter == 10:
+            counter = 0
+            print('File size: {}'.format(total_size))
+            for key, value in sorted(cache.items()):
+                if value != 0:
+                    print('{}: {}'.format(key, value))
 
-# Initialize the stats variables
-total_file_size = 0
-status_code_counts = {}
+except Exception as err:
+    pass
 
-
-def print_stats():
-    """Define a function to print the current stats"""
-    print(f'Total file size: {total_file_size}')
-    for status_code in sorted(status_code_counts.keys()):
-        print(f'{status_code}: {status_code_counts[status_code]}')
-
-# Read from stdin line by line
-line_num = 0
-for line in sys.stdin:
-    line_num += 1
-
-    # Parse the line
-    try:
-        ip_address, _, _, _,_,_,_,status_code, file_size = line.split()
-        status_code = int(status_code)
-        file_size = int(file_size)
-    except ValueError:
-        # Skip the line if it doesn't match the expected format
-        continue
-
-    # Update the stats
-    total_file_size += file_size
-    status_code_counts[status_code] = status_code_counts.get(status_code, 0) + 1
-
-    # Print the stats every 10 lines
-    if line_num % 10 == 0:
-        print_stats()
-
-# Print the final stats
-print_stats()
+finally:
+    print('File size: {}'.format(total_size))
+    for key, value in sorted(cache.items()):
+        if value != 0:
+            print('{}: {}'.format(key, value))
+            
