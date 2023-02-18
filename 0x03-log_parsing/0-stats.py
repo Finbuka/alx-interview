@@ -1,55 +1,74 @@
 #!/usr/bin/python3
 """
-    A module that read from stdin and calculate matrix on it
-signal_handler: function that handle CTRL + C
-    it prints the calculated matrix and exit
-Print_stats: function that calculate the matrix
-    prints out the calculated matrix
+A script: Reads standard input line by line and computes metrics
 """
 
 
-import sys
-import signal
-
-total_file_size = 0
-stat_cod_cnt = {}
-line_num = 0
-
-def signal_handler(sig, frame):
+def signal_handler(sig, frame, total_file_size, stat_cod_cnt):
     """
-    Define a function to handle keyboard interrupts
-        sig: CTRL + C
-        frame: 
-    exits with status code 0
+    Handles the CTRL + c signal
+    Args:
+        sig (int): total log size after every 10 successfully read line
+        frame (FrameType): dictionary of status codes and counts
+        total_file_size (int): params for the print stats
+        stat_cod_cnt (int): params for the print stats
     """
-    print_stats()
+    print_stats(total_file_size, stat_cod_cnt)
     sys.exit(0)
 
 
-def print_stats():
+def print_stats(total_file_size, stat_cod_cnt):
     """
-    Define a function to print the current stats
-        it takes no argument
-        prints the calculated matrix
+    Prints generated report to standard output
+    Args:
+        total_file_size (int): total log size after every 10 successfully
+        stat_cod_cnt (dict): dictionary of status codes and counts
     """
-    print(f"File size: {total_file_size}")
+    print(f"File size: {total_file_size[0]}")
     for status_code in sorted(stat_cod_cnt.keys()):
         print(f"{status_code}: {stat_cod_cnt[status_code]}")
 
-for line in sys.stdin:
-    line_num += 1
 
-    try:
-        ip_address, _, _, _, _, _, _, status_code, file_size = line.split()
-        status_code = int(status_code)
-        file_size = int(file_size)
-    except ValueError:
-        continue
+def parse_logs():
+    """
+    Reads logs from standard input and generates reports
+    Reports:
+        * Prints log size after reading every 10 lines & at KeyboardInterrupt
+    Raises:
+        KeyboardInterrupt (Exception): handles this exception and raises it
+    """
+    total_file_size = [
+        0,
+    ]
+    stat_cod_cnt = {}
+    line_num = 0
+    new_signal_handler = functools.partial(
+        signal_handler,
+        total_file_size=total_file_size,
+        stat_cod_cnt=stat_cod_cnt,
+    )
+    signal.signal(signal.SIGINT, new_signal_handler)
 
-    total_file_size += file_size
-    stat_cod_cnt[status_code] = stat_cod_cnt.get(status_code, 0) + 1
+    for line in sys.stdin:
+        line_num += 1
 
-    if line_num % 10 == 0:
-        print_stats()
+        try:
+            _, _, _, _, _, _, _, status_code, file_size = line.split()
+            status_code = int(status_code)
+            file_size = int(file_size)
+        except ValueError:
+            continue
 
-signal.signal(signal.SIGINT, signal_handler)
+        total_file_size[0] += file_size
+        stat_cod_cnt[status_code] = stat_cod_cnt.get(status_code, 0) + 1
+
+        if line_num % 10 == 0:
+            print_stats(total_file_size, stat_cod_cnt)
+
+
+if __name__ == "__main__":
+    import sys
+    import signal
+    import functools
+
+    parse_logs()
